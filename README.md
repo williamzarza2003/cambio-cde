@@ -2,9 +2,10 @@
 
 Aplicación web para una casa de cambios de Ciudad del Este (Paraguay): cotizaciones del día, operaciones de compra y venta de divisas, caja con apertura y cierre por arqueo, anulaciones y una pantalla pública de cotizaciones para la TV del local.
 
-**Demo:** DEMO_URL
-Usuario demo (rol cajero): `DEMO_EMAIL` · contraseña `DEMO_PASSWORD`
-La base de la demo es compartida: lo que cargues lo ven los demás visitantes.
+**Demo:** https://cambio-cde-delta.vercel.app
+Usuario demo (rol cajero): `demo@cambiocde.com` · contraseña `demo1234`
+Pantalla TV pública: https://cambio-cde-delta.vercel.app/pantalla
+La base de la demo es compartida: lo que cargues lo ven los demás visitantes. El usuario demo no puede anular operaciones, cargar cotizaciones ni cambiar su contraseña.
 
 ## Funcionalidades
 
@@ -30,7 +31,7 @@ React 19 · TypeScript · Vite · React Router · Supabase (PostgreSQL, Auth, Ro
 
 Requisitos: Node.js 20+ y un proyecto gratuito en [Supabase](https://supabase.com).
 
-1. En Supabase › SQL Editor ejecutá, en orden, `supabase/schema.sql` y `supabase/02_saldos_caja.sql`.
+1. En Supabase › SQL Editor ejecutá, en orden, `supabase/schema.sql` y `supabase/02_saldos_caja.sql` (`03_proteger_demo.sql` es opcional: bloquea cambios al usuario demo).
 2. En Authentication › Users creá tu usuario y hacelo admin:
    ```sql
    update public.perfiles set rol = 'admin' where id = (select id from auth.users where email = 'TU_EMAIL');
