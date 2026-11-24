@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useCotizaciones } from '../lib/cotizaciones'
 import { useAuth } from '../context/AuthContext'
 import { useAvisos } from '../context/AvisosContext'
-import { gs, importe, num } from '../lib/formato'
+import { gs, importe, num, tasaTexto } from '../lib/formato'
 import Arqueo from '../components/Arqueo'
 import Bandera from '../components/Bandera'
 import Ticket, { Renglon } from '../components/Ticket'
@@ -311,7 +311,7 @@ export default function NuevaOperacion() {
             </span>
             <strong className="total-operacion__monto">{gs(estimado || 0)}</strong>
             <span className="total-operacion__detalle">
-              {tasa ? `${num(Number(monto) || 0)} ${moneda} × ${gs(tasa)}` : 'Sin cotización para esta moneda'}
+              {tasa ? `${num(Number(monto) || 0)} ${moneda} × ${tasaTexto(moneda, tasa)}` : 'Sin cotización para esta moneda'}
               {' · '}estimado; el total final lo calcula el sistema
             </span>
           </div>
@@ -327,7 +327,7 @@ export default function NuevaOperacion() {
             titulo={comprobante.tipo === 'venta' ? 'VENTA DE DIVISAS' : 'COMPRA DE DIVISAS'}
             numero={comprobante.id} fecha={comprobante.created_at} onCerrar={() => setComprobante(null)}
           >
-            <Renglon concepto={`${num(comprobante.monto_divisa)} ${comprobante.moneda}`} valor={`× ${gs(comprobante.cotizacion)}`} />
+            <Renglon concepto={`${num(comprobante.monto_divisa)} ${comprobante.moneda}`} valor={`× ${tasaTexto(comprobante.moneda, comprobante.cotizacion)}`} />
             <Renglon concepto="TOTAL" valor={gs(comprobante.monto_pyg)} fuerte />
           </Ticket>
         )}
@@ -353,7 +353,7 @@ export default function NuevaOperacion() {
                   <td data-etiqueta="Hora">{hora(o.created_at)}</td>
                   <td data-etiqueta="Tipo"><TipoEtiqueta tipo={o.tipo} /></td>
                   <td data-etiqueta="Divisa" className="num">{num(o.monto_divisa)} {o.moneda}</td>
-                  <td data-etiqueta="Cotización" className="num">{gs(o.cotizacion)}</td>
+                  <td data-etiqueta="Cotización" className="num">{tasaTexto(o.moneda, o.cotizacion)}</td>
                   <td data-etiqueta="Total" className="num"><strong>{gs(o.monto_pyg)}</strong></td>
                   <td className="acciones">
                     {o.anulada ? <span className="insignia">Anulada</span> : perfil?.rol === 'admin' && (

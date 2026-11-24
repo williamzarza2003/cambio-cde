@@ -255,6 +255,8 @@ legend { font-size: .875rem; font-weight: 500; color: var(--tinta-2); margin-bot
 .mini-tablero__fila--titulos { grid-template-columns: 6rem 1fr 1fr; color: #a3a9b4; font-size: .8rem; }
 .mini-tablero__vacio { color: #a3a9b4; }
 .fila-moneda { display: flex; align-items: center; gap: .6rem; }
+.fila-moneda__codigo { display: grid; line-height: 1; }
+.fila-moneda .lote { font-size: .7rem; line-height: 1.3; color: var(--ambar); white-space: nowrap; }
 .punto-vivo { width: 8px; height: 8px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 0 3px rgba(61, 220, 132, .25); }
 
 /* ---------- Fichas split-flap ---------- */
@@ -282,37 +284,55 @@ legend { font-size: .875rem; font-weight: 500; color: var(--tinta-2); margin-bot
 /* ---------- Pantalla TV (16:9) ---------- */
 .tablero {
   --u: min(1vw, 1.7778vh);
-  height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto 1fr auto;
-  gap: calc(var(--u) * 2.2); padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: calc(var(--u) * 1.8); padding: calc(var(--u) * 2.2) calc(var(--u) * 3.4) calc(var(--u) * 1.8);
   background: var(--tablero); color: #fff; overflow: hidden;
 }
 .tablero--quieto { cursor: none; }
 .tablero--quieto .tablero__completa { opacity: 0; transition: none; }
 .tablero--quieto .tablero__completa:focus-visible { opacity: 1; }
-.tablero__cabecera { display: flex; justify-content: space-between; align-items: center; padding-bottom: calc(var(--u) * 2); border-bottom: 2px solid #23262c; }
-.tablero__marca { display: flex; align-items: center; gap: calc(var(--u) * 1.4); }
-.tablero__marca .marca { width: calc(var(--u) * 4.4); height: auto; }
-.tablero__marca h1 { font: 700 calc(var(--u) * 3.6)/1 var(--condensada); margin: 0; letter-spacing: .01em; }
-.tablero__marca p { margin: calc(var(--u) * .4) 0 0; font-size: calc(var(--u) * 1.6); color: #a3a9b4; }
+.tablero__cabecera { display: flex; justify-content: space-between; align-items: center; padding-bottom: calc(var(--u) * 1.6); border-bottom: 2px solid #23262c; }
+.tablero__marca { display: flex; align-items: center; gap: calc(var(--u) * 1.2); }
+.tablero__marca .marca { width: calc(var(--u) * 3.8); height: auto; }
+.tablero__marca h1 { font: 700 calc(var(--u) * 3.2)/1 var(--condensada); margin: 0; letter-spacing: .01em; }
+.tablero__marca p { margin: calc(var(--u) * .3) 0 0; font-size: calc(var(--u) * 1.4); color: #a3a9b4; }
 .tablero__reloj { text-align: right; }
-.tablero__reloj time { font: 600 calc(var(--u) * 4.6)/1 var(--condensada); font-variant-numeric: tabular-nums; }
+.tablero__reloj time { font: 600 calc(var(--u) * 4)/1 var(--condensada); font-variant-numeric: tabular-nums; }
 .tablero__segundos { font-size: .5em; color: var(--ambar); margin-left: .2em; }
-.tablero__reloj p { margin: calc(var(--u) * .3) 0 0; font-size: calc(var(--u) * 1.8); color: #c3c8d1; }
+.tablero__reloj p { margin: calc(var(--u) * .2) 0 0; font-size: calc(var(--u) * 1.5); color: #c3c8d1; }
 .tablero__reloj p::first-letter { text-transform: uppercase; }
-.tablero__tabla { display: grid; align-content: center; gap: calc(var(--u) * 1.6); }
-.tablero__fila { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; column-gap: calc(var(--u) * 5); }
-.tablero__fila--titulos { font: 600 calc(var(--u) * 2)/1 var(--condensada); color: #a3a9b4; letter-spacing: .04em; }
-.tablero__fila--titulos > span:not(:first-child) { text-align: right; }
-/* La altura de las fichas se adapta a la cantidad de monedas para que todo entre en 16:9 */
-.tablero__fila { --alto: min(calc(var(--u) * 9), calc((100vh - var(--u) * 27) / var(--filas, 2) - var(--u) * 1.6)); }
+
+/*
+ * Una sola grilla para títulos y filas (subgrid): "Compramos" y "Vendemos" quedan
+ * centrados exactamente sobre sus fichas. La altura de las fichas sale del espacio real
+ * de la tabla (container queries): con 2 o con 6 monedas, la pizarra llena la TV.
+ */
+.tablero__tabla {
+  --titulos: calc(var(--u) * 2.2);
+  --hueco: calc(var(--u) * 1.4);
+  container-type: size;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-content: center;
+  column-gap: calc(var(--u) * 4.5); row-gap: var(--hueco);
+}
+.tablero__fila {
+  grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center;
+  /* el menor entre: lo que entra a lo alto (por fila) y lo que entra a lo ancho (moneda + 2 columnas) */
+  --alto: min(
+    calc((100cqh - var(--titulos) - var(--hueco) * var(--filas, 2)) / var(--filas, 2)),
+    calc((100cqw - var(--u) * 9) / 9.6)
+  );
+}
+.tablero__fila--titulos { font: 600 var(--titulos)/1 var(--condensada); color: #a3a9b4; letter-spacing: .04em; }
+.tablero__fila--titulos > span:not(:first-child) { justify-self: center; }
 .tablero__fila .fichas { --alto: inherit; }
-.tablero__moneda { display: grid; grid-template-columns: auto 1fr; justify-content: start; grid-template-rows: auto auto; column-gap: calc(var(--u) * 1.6); align-items: center; }
-.tablero__moneda .bandera { grid-row: span 2; width: calc(var(--alto) * .66); height: calc(var(--alto) * .44); border-radius: calc(var(--u) * .3); }
-.tablero__moneda b { font: 700 calc(var(--alto) * .6)/1 var(--condensada); }
-.tablero__moneda small { font-size: max(calc(var(--alto) * .2), 13px); line-height: 1.2; color: #a3a9b4; white-space: nowrap; }
+.tablero__moneda { display: grid; grid-template-columns: auto 1fr; justify-content: start; grid-template-rows: auto auto; column-gap: calc(var(--alto) * .2); align-items: center; }
+.tablero__moneda .bandera { grid-row: span 2; width: calc(var(--alto) * .62); height: calc(var(--alto) * .41); border-radius: calc(var(--u) * .3); }
+.tablero__moneda b { font: 700 calc(var(--alto) * .58)/1 var(--condensada); }
+.tablero__moneda small { font-size: max(calc(var(--alto) * .19), 13px); line-height: 1.2; color: #a3a9b4; white-space: nowrap; }
+.tablero__lote { color: var(--ambar); }
 .tablero__fila--cargando .ficha { color: transparent; text-shadow: none; animation: titila 1.2s ease-in-out infinite alternate; }
 @keyframes titila { to { opacity: .5; } }
-.tablero__pie { display: flex; justify-content: space-between; align-items: center; gap: 2rem; font-size: calc(var(--u) * 1.6); color: #a3a9b4; }
+.tablero__pie { display: flex; justify-content: space-between; align-items: center; gap: 2rem; font-size: calc(var(--u) * 1.4); color: #a3a9b4; }
 .tablero__aviso { color: var(--ambar); }
 .tablero__completa { font: inherit; font-size: .9em; background: transparent; color: #c3c8d1; border: 1px solid #3a3d44; border-radius: 6px; padding: .4em .9em; cursor: pointer; transition: opacity .3s; }
 
@@ -386,6 +406,9 @@ legend { font-size: .875rem; font-weight: 500; color: var(--tinta-2); margin-bot
   .ingreso { grid-template-columns: 1fr; }
   .ingreso__vitrina { padding: 1.5rem 1rem; gap: 1.25rem; }
   .ingreso__vitrina .mini-tablero__fila:nth-of-type(n + 4) { display: none; }
+  /* las fichas se achican con el ancho del celular: 2 columnas de ~3,3 alturas + la moneda */
+  .ingreso__vitrina .mini-tablero__fila--doble, .ingreso__vitrina .mini-tablero__fila--titulos { grid-template-columns: 4.25rem auto auto; column-gap: .9rem; }
+  .ingreso__vitrina .mini-tablero .fichas { --alto: min(2.6rem, calc((100vw - 2rem - 4.25rem - 1.8rem) / 6.5)); }
   .ingreso__pie { display: none; }
   .ingreso__formulario { padding: 2rem 1rem 3rem; place-items: start center; }
   .acerca__ancho { width: calc(100% - 2rem); }
@@ -401,12 +424,21 @@ legend { font-size: .875rem; font-weight: 500; color: var(--tinta-2); margin-bot
 
 /* La pantalla TV en un celular vertical: se apila */
 @media (max-aspect-ratio: 1/1) {
-  .tablero { --u: 2vw; }
-  .tablero__fila { grid-template-columns: 1fr 1fr; row-gap: calc(var(--u) * 1.5); }
+  .tablero { --u: 2vw; height: auto; min-height: 100dvh; padding: calc(var(--u) * 5) calc(var(--u) * 4); gap: calc(var(--u) * 5); }
+  .tablero__cabecera { flex-wrap: wrap; gap: calc(var(--u) * 2) calc(var(--u) * 4); align-items: center; }
+  .tablero__marca .marca { width: calc(var(--u) * 7); }
+  .tablero__marca h1 { font-size: calc(var(--u) * 5.6); }
+  .tablero__marca p { font-size: .8rem; }
+  .tablero__reloj { text-align: left; }
+  .tablero__reloj time { font-size: calc(var(--u) * 6.4); }
+  .tablero__reloj p { font-size: .85rem; }
+  .tablero__tabla { --titulos: 1rem; container-type: normal; grid-template-columns: auto auto; justify-content: space-between; column-gap: calc(var(--u) * 3); row-gap: calc(var(--u) * 4.5); align-content: start; }
+  /* dos columnas de fichas a lo ancho del celular: 2 × 3,3 alturas por columna + márgenes */
+  .tablero__fila { row-gap: calc(var(--u) * 2); --alto: min(calc((100vw - var(--u) * 11) / 6.7), 4.5rem); }
   .tablero__fila .tablero__moneda { grid-column: 1 / -1; }
   .tablero__fila--titulos > span:first-child { display: none; }
-  .tablero__fila--titulos > span { text-align: left !important; }
-  .tablero__fila { --alto: calc(var(--u) * 7.5); }
+  .tablero__fila--titulos > span:not(:first-child) { justify-self: start; }
+  .tablero__pie { flex-wrap: wrap; gap: 1rem; font-size: .85rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

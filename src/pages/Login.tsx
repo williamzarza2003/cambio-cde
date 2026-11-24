@@ -6,21 +6,22 @@ import { useCotizaciones } from '../lib/cotizaciones'
 import { Fichas, plantillaDe } from '../components/Pizarra'
 import Bandera from '../components/Bandera'
 import Logo from '../components/Logo'
+import { cotizacionVisible, miles, porUnidad, unidadDe } from '../lib/formato'
 
 // Cuenta pública de la demo (rol cajero), la misma que figura en el README
 const DEMO = { email: 'demo@cambiocde.com', password: 'demo1234' }
 
 export default function Login() {
   const { session } = useAuth()
-  const { cotizaciones } = useCotizaciones()
+  const { cotizaciones } = useCotizaciones({ enVivo: true })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
 
   const divisas = cotizaciones.filter((c) => c.moneda !== 'PYG')
-  const miles = (n: number) => Math.round(n).toLocaleString('es-PY')
-  const plantilla = plantillaDe(divisas.flatMap((c) => [miles(c.compra), miles(c.venta)]))
+  const valor = (moneda: string, n: number) => miles(cotizacionVisible(moneda, n))
+  const plantilla = plantillaDe(divisas.flatMap((c) => [valor(c.moneda, c.compra), valor(c.moneda, c.venta)]))
 
   if (session) return <Navigate to="/" replace />
 
@@ -62,9 +63,9 @@ export default function Login() {
           </div>
           {divisas.map((c) => (
             <div key={c.moneda} className="mini-tablero__fila mini-tablero__fila--doble">
-              <span className="fila-moneda"><Bandera moneda={c.moneda} /> <b>{c.moneda}</b></span>
-              <Fichas texto={miles(c.compra)} plantilla={plantilla} etiqueta={`${c.nombre}: compramos a ${Math.round(c.compra)} guaraníes`} />
-              <Fichas texto={miles(c.venta)} plantilla={plantilla} etiqueta={`${c.nombre}: vendemos a ${Math.round(c.venta)} guaraníes`} />
+              <span className="fila-moneda"><Bandera moneda={c.moneda} /> <span className="fila-moneda__codigo"><b>{c.moneda}</b>{unidadDe(c.moneda) > 1 && <small className="lote">{porUnidad(c.moneda)}</small>}</span></span>
+              <Fichas texto={valor(c.moneda, c.compra)} plantilla={plantilla} etiqueta={`${c.nombre}: compramos a ${valor(c.moneda, c.compra)} guaraníes ${porUnidad(c.moneda)}`.trim()} />
+              <Fichas texto={valor(c.moneda, c.venta)} plantilla={plantilla} etiqueta={`${c.nombre}: vendemos a ${valor(c.moneda, c.venta)} guaraníes ${porUnidad(c.moneda)}`.trim()} />
             </div>
           ))}
         </div>

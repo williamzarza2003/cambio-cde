@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useCotizaciones } from '../lib/cotizaciones'
 import { useAuth } from '../context/AuthContext'
 import { useAvisos } from '../context/AvisosContext'
-import { fechaHora, gs } from '../lib/formato'
+import { fechaHora, gs, tasaTexto, unidadDe } from '../lib/formato'
 import Bandera from '../components/Bandera'
 
 const MONEDAS = ['USD', 'BRL', 'ARS', 'EUR']
@@ -11,7 +11,7 @@ const MONEDAS = ['USD', 'BRL', 'ARS', 'EUR']
 export default function Cotizaciones() {
   const { perfil } = useAuth()
   const avisar = useAvisos()
-  const { cotizaciones, error, recargar } = useCotizaciones()
+  const { cotizaciones, error, recargar } = useCotizaciones({ enVivo: true })
   const [cargado, setCargado] = useState(false)
   const [moneda, setMoneda] = useState('USD')
   const [compra, setCompra] = useState('')
@@ -24,8 +24,10 @@ export default function Cotizaciones() {
   const guardar = async (e: FormEvent) => {
     e.preventDefault()
     setMsg('')
-    const c = Number(compra)
-    const v = Number(venta)
+    // Lo que se escribe es por la unidad de cotización (ej. por 100 ARS); la base guarda por 1 unidad
+    const lote = unidadDe(moneda)
+    const c = Number(compra) / lote
+    const v = Number(venta) / lote
     if (v < c) return setMsg('La venta no puede ser menor que la compra: revisá los dos valores.')
     setGuardando(true)
     const { error } = await supabase.from('cotizaciones').insert({ moneda, compra: c, venta: v })
@@ -33,7 +35,7 @@ export default function Cotizaciones() {
     if (error) return setMsg(`No se pudo guardar: ${error.message}`)
     setCompra('')
     setVenta('')
-    avisar(`Cotización de ${moneda} actualizada. La pantalla TV la muestra en menos de un minuto.`)
+    avisar(`Cotización de ${moneda} actualizada. La pantalla TV ya la muestra.`)
     recargar()
   }
 
@@ -42,7 +44,7 @@ export default function Cotizaciones() {
       <header className="pagina__cabecera">
         <div>
           <h1>Cotizaciones</h1>
-          <p className="suave">Guaraníes por unidad. Las operaciones usan siempre la última cotización cargada.</p>
+          <p className="suave">Guaraníes por unidad (el peso argentino, por cada 100). Las operaciones usan siempre la última cotización cargada.</p>
         </div>
       </header>
 
@@ -73,9 +75,9 @@ export default function Cotizaciones() {
             {cotizaciones.map((c) => (
               <tr key={c.moneda}>
                 <th scope="row"><span className="arqueo__moneda"><Bandera moneda={c.moneda} /> <b>{c.moneda}</b> <span className="suave">{c.nombre}</span></span></th>
-                <td data-etiqueta="Compramos a" className="num">{gs(c.compra)}</td>
-                <td data-etiqueta="Vendemos a" className="num">{gs(c.venta)}</td>
-                <td data-etiqueta="Margen" className="num suave">{gs(c.venta - c.compra)}</td>
+                <td data-etiqueta="Compramos a" className="num">{tasaTexto(c.moneda, c.compra)}</td>
+                <td data-etiqueta="Vendemos a" className="num">{tasaTexto(c.moneda, c.venta)}</td>
+                <td data-etiqueta="Margen" className="num suave">{unidadDe(c.moneda) > 1 ? tasaTexto(c.moneda, c.venta - c.compra) : gs(c.venta - c.compra)}</td>
                 <td data-etiqueta="Actualizada">{fechaHora(c.created_at)}</td>
               </tr>
             ))}
@@ -97,11 +99,11 @@ export default function Cotizaciones() {
               </select>
             </label>
             <label className="campo">
-              <span>Compramos a (₲)</span>
+              <span>Compramos {unidadDe(moneda) > 1 ? `${unidadDe(moneda)} ${moneda}` : ''} a (₲)</span>
               <input className="input-num" type="number" inputMode="decimal" min="0" step="0.01" value={compra} onChange={(e) => setCompra(e.target.value)} required />
             </label>
             <label className="campo">
-              <span>Vendemos a (₲)</span>
+              <span>Vendemos {unidadDe(moneda) > 1 ? `${unidadDe(moneda)} ${moneda}` : ''} a (₲)</span>
               <input className="input-num" type="number" inputMode="decimal" min="0" step="0.01" value={venta} onChange={(e) => setVenta(e.target.value)} required />
             </label>
           </div>

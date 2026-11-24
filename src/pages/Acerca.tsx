@@ -5,7 +5,9 @@ import { Fichas, plantillaDe } from '../components/Pizarra'
 import Bandera from '../components/Bandera'
 import Logo from '../components/Logo'
 
-const miles = (n: number) => Math.round(n).toLocaleString('es-PY')
+import { cotizacionVisible, miles, porUnidad, unidadDe } from '../lib/formato'
+
+const valor = (moneda: string, n: number) => miles(cotizacionVisible(moneda, n))
 
 const SQL = `-- Antes de guardar una operación, la base toma la
 -- cotización vigente y calcula los guaraníes.
@@ -16,9 +18,9 @@ new.cajero_id  := auth.uid();`
 
 /** Presentación pública del proyecto, pensada para quien llega desde un portafolio. */
 export default function Acerca() {
-  const { cotizaciones } = useCotizaciones()
+  const { cotizaciones } = useCotizaciones({ enVivo: true })
   const filas = cotizaciones.filter((c) => c.moneda !== 'PYG')
-  const plantilla = plantillaDe(filas.flatMap((c) => [miles(c.compra), miles(c.venta)]))
+  const plantilla = plantillaDe(filas.flatMap((c) => [valor(c.moneda, c.compra), valor(c.moneda, c.venta)]))
 
   useEffect(() => {
     document.title = 'Cambio CDE · Sistema para casas de cambio'
@@ -66,9 +68,9 @@ export default function Acerca() {
               </div>
               {filas.map((c) => (
                 <div key={c.moneda} className="mini-tablero__fila mini-tablero__fila--doble">
-                  <span className="fila-moneda"><Bandera moneda={c.moneda} /> <b>{c.moneda}</b></span>
-                  <Fichas texto={miles(c.compra)} plantilla={plantilla} etiqueta={`Compra de ${c.nombre}: ${miles(c.compra)} guaraníes`} />
-                  <Fichas texto={miles(c.venta)} plantilla={plantilla} etiqueta={`Venta de ${c.nombre}: ${miles(c.venta)} guaraníes`} />
+                  <span className="fila-moneda"><Bandera moneda={c.moneda} /> <span className="fila-moneda__codigo"><b>{c.moneda}</b>{unidadDe(c.moneda) > 1 && <small className="lote">{porUnidad(c.moneda)}</small>}</span></span>
+                  <Fichas texto={valor(c.moneda, c.compra)} plantilla={plantilla} etiqueta={`Compra de ${c.nombre}: ${valor(c.moneda, c.compra)} guaraníes ${porUnidad(c.moneda)}`.trim()} />
+                  <Fichas texto={valor(c.moneda, c.venta)} plantilla={plantilla} etiqueta={`Venta de ${c.nombre}: ${valor(c.moneda, c.venta)} guaraníes ${porUnidad(c.moneda)}`.trim()} />
                 </div>
               ))}
               {!filas.length && <p className="mini-tablero__vacio">Conectando con la base…</p>}
