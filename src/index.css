@@ -387,6 +387,7 @@ legend { font-size: .875rem; font-weight: 500; color: var(--tinta-2); margin-bot
   .usuario { margin-left: auto; }
   .usuario > span { display: none; }
   .saldos { grid-template-columns: 1fr 1fr; }
+  .saldos > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   .saldo { padding: .75rem 1rem; }
   .saldo strong { font-size: 1rem; white-space: nowrap; }
   .contenido { padding: 1.25rem 1rem 4rem; }
