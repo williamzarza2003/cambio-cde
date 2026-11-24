@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
 import type { Perfil } from '../types'
+
+const cliente = () => import('../lib/supabase').then((m) => m.supabase)
 
 interface AuthState {
   session: Session | null
@@ -17,13 +18,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [cargando, setCargando] = useState(true)
 
+  // El cliente de Supabase se importa en diferido: así no bloquea el primer
+  // render de las pantallas públicas (TV, presentación, login).
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      if (!data.session) setCargando(false)
+    let cancelar = () => {}
+    let activo = true
+    cliente().then((supabase) => {
+      if (!activo) return
+      supabase.auth.getSession().then(({ data }) => {
+        setSession(data.session)
+        if (!data.session) setCargando(false)
+      })
+      const { data } = supabase.auth.onAuthStateChange((_evento, s) => setSession(s))
+      cancelar = () => data.subscription.unsubscribe()
     })
-    const { data } = supabase.auth.onAuthStateChange((_evento, s) => setSession(s))
-    return () => data.subscription.unsubscribe()
+    return () => {
+      activo = false
+      cancelar()
+    }
   }, [])
 
   useEffect(() => {
@@ -32,18 +44,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
     setCargando(true)
-    supabase
-      .from('perfiles')
-      .select('id, nombre, rol, activo')
-      .eq('id', session.user.id)
-      .single()
-      .then(({ data }) => {
-        setPerfil(data as Perfil | null)
-        setCargando(false)
-      })
+    cliente().then((supabase) =>
+      supabase
+        .from('perfiles')
+        .select('id, nombre, rol, activo')
+        .eq('id', session.user.id)
+        .single()
+        .then(({ data }) => {
+          setPerfil(data as Perfil | null)
+          setCargando(false)
+        }),
+    )
   }, [session])
 
   const salir = async () => {
+    const supabase = await cliente()
     await supabase.auth.signOut()
   }
 

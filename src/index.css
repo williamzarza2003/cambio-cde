@@ -287,7 +287,8 @@ legend { font-size: .875rem; font-weight: 500; color: var(--tinta-2); margin-bot
   background: var(--tablero); color: #fff; overflow: hidden;
 }
 .tablero--quieto { cursor: none; }
-.tablero--quieto .tablero__completa { opacity: 0; }
+.tablero--quieto .tablero__completa { opacity: 0; transition: none; }
+.tablero--quieto .tablero__completa:focus-visible { opacity: 1; }
 .tablero__cabecera { display: flex; justify-content: space-between; align-items: center; padding-bottom: calc(var(--u) * 2); border-bottom: 2px solid #23262c; }
 .tablero__marca { display: flex; align-items: center; gap: calc(var(--u) * 1.4); }
 .tablero__marca .marca { width: calc(var(--u) * 4.4); height: auto; }
