@@ -2,75 +2,117 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useCotizaciones } from '../lib/cotizaciones'
 import { useAuth } from '../context/AuthContext'
-import { fechaHora, gs } from '../lib/formato'
+import { useAvisos } from '../context/AvisosContext'
+import { fechaHora, gs, tasaTexto, unidadDe } from '../lib/formato'
+import Bandera from '../components/Bandera'
 
 const MONEDAS = ['USD', 'BRL', 'ARS', 'EUR']
 
 export default function Cotizaciones() {
   const { perfil } = useAuth()
-  const { cotizaciones, error, recargar } = useCotizaciones()
+  const avisar = useAvisos()
+  const { cotizaciones, error, recargar } = useCotizaciones({ enVivo: true })
+  const [cargado, setCargado] = useState(false)
   const [moneda, setMoneda] = useState('USD')
   const [compra, setCompra] = useState('')
   const [venta, setVenta] = useState('')
   const [msg, setMsg] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  if (!cargado && (cotizaciones.length || error)) setCargado(true)
 
   const guardar = async (e: FormEvent) => {
     e.preventDefault()
     setMsg('')
-    const c = Number(compra)
-    const v = Number(venta)
-    if (v < c) return setMsg('La venta no puede ser menor que la compra')
+    // Lo que se escribe es por la unidad de cotización (ej. por 100 ARS); la base guarda por 1 unidad
+    const lote = unidadDe(moneda)
+    const c = Number(compra) / lote
+    const v = Number(venta) / lote
+    if (v < c) return setMsg('La venta no puede ser menor que la compra: revisá los dos valores.')
+    setGuardando(true)
     const { error } = await supabase.from('cotizaciones').insert({ moneda, compra: c, venta: v })
-    if (error) return setMsg(error.message)
+    setGuardando(false)
+    if (error) return setMsg(`No se pudo guardar: ${error.message}`)
     setCompra('')
     setVenta('')
-    setMsg('Cotización actualizada')
+    avisar(`Cotización de ${moneda} actualizada. La pantalla TV ya la muestra.`)
     recargar()
   }
 
   return (
-    <section>
-      <h2>Cotizaciones vigentes</h2>
-      {error && <p className="error">{error}</p>}
-      <table>
-        <thead>
-          <tr><th>Moneda</th><th>Compra</th><th>Venta</th><th>Actualizada</th></tr>
-        </thead>
-        <tbody>
-          {cotizaciones.map((c) => (
-            <tr key={c.moneda}>
-              <td>{c.simbolo} {c.nombre}</td>
-              <td>{gs(c.compra)}</td>
-              <td>{gs(c.venta)}</td>
-              <td>{fechaHora(c.created_at)}</td>
-            </tr>
-          ))}
-          {cotizaciones.length === 0 && (
-            <tr><td colSpan={4}>Todavía no hay cotizaciones cargadas.</td></tr>
-          )}
-        </tbody>
-      </table>
+    <div className="pagina">
+      <header className="pagina__cabecera">
+        <div>
+          <h1>Cotizaciones</h1>
+          <p className="suave">Guaraníes por unidad (el peso argentino, por cada 100). Las operaciones usan siempre la última cotización cargada.</p>
+        </div>
+      </header>
 
-      {perfil?.rol === 'admin' && (
-        <form className="tarjeta fila" onSubmit={guardar}>
-          <label>
-            Moneda
-            <select value={moneda} onChange={(e) => setMoneda(e.target.value)}>
-              {MONEDAS.map((m) => <option key={m}>{m}</option>)}
-            </select>
-          </label>
-          <label>
-            Compra (₲)
-            <input type="number" min="0" step="0.01" value={compra} onChange={(e) => setCompra(e.target.value)} required />
-          </label>
-          <label>
-            Venta (₲)
-            <input type="number" min="0" step="0.01" value={venta} onChange={(e) => setVenta(e.target.value)} required />
-          </label>
-          <button>Actualizar</button>
-          {msg && <p>{msg}</p>}
-        </form>
+      {error && (
+        <div className="estado estado--error" role="alert">
+          <p>No se pudieron leer las cotizaciones. {error}</p>
+          <button className="boton boton--secundario" onClick={recargar}>Reintentar</button>
+        </div>
       )}
-    </section>
+
+      <section className="panel" aria-labelledby="titulo-vigentes">
+        <h2 id="titulo-vigentes">Vigentes</h2>
+        <table className="tabla tabla--apilable">
+          <thead>
+            <tr>
+              <th scope="col">Moneda</th>
+              <th scope="col" className="num">Compramos a</th>
+              <th scope="col" className="num">Vendemos a</th>
+              <th scope="col" className="num">Margen</th>
+              <th scope="col">Actualizada</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!cargado &&
+              [0, 1, 2, 3].map((i) => (
+                <tr key={i} aria-hidden="true"><td colSpan={5}><span className="esqueleto esqueleto--linea" /></td></tr>
+              ))}
+            {cotizaciones.map((c) => (
+              <tr key={c.moneda}>
+                <th scope="row"><span className="arqueo__moneda"><Bandera moneda={c.moneda} /> <b>{c.moneda}</b> <span className="suave">{c.nombre}</span></span></th>
+                <td data-etiqueta="Compramos a" className="num">{tasaTexto(c.moneda, c.compra)}</td>
+                <td data-etiqueta="Vendemos a" className="num">{tasaTexto(c.moneda, c.venta)}</td>
+                <td data-etiqueta="Margen" className="num suave">{unidadDe(c.moneda) > 1 ? tasaTexto(c.moneda, c.venta - c.compra) : gs(c.venta - c.compra)}</td>
+                <td data-etiqueta="Actualizada">{fechaHora(c.created_at)}</td>
+              </tr>
+            ))}
+            {cargado && cotizaciones.length === 0 && !error && (
+              <tr><td colSpan={5} className="vacio">Todavía no hay cotizaciones cargadas.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      {perfil?.rol === 'admin' ? (
+        <form className="panel" onSubmit={guardar} aria-labelledby="titulo-cargar">
+          <h2 id="titulo-cargar">Cargar cotización</h2>
+          <div className="tres-columnas">
+            <label className="campo">
+              <span>Moneda</span>
+              <select value={moneda} onChange={(e) => setMoneda(e.target.value)}>
+                {MONEDAS.map((m) => <option key={m}>{m}</option>)}
+              </select>
+            </label>
+            <label className="campo">
+              <span>Compramos {unidadDe(moneda) > 1 ? `${unidadDe(moneda)} ${moneda}` : ''} a (₲)</span>
+              <input className="input-num" type="number" inputMode="decimal" min="0" step="0.01" value={compra} onChange={(e) => setCompra(e.target.value)} required />
+            </label>
+            <label className="campo">
+              <span>Vendemos {unidadDe(moneda) > 1 ? `${unidadDe(moneda)} ${moneda}` : ''} a (₲)</span>
+              <input className="input-num" type="number" inputMode="decimal" min="0" step="0.01" value={venta} onChange={(e) => setVenta(e.target.value)} required />
+            </label>
+          </div>
+          {msg && <p className="error" role="alert">{msg}</p>}
+          <button className="boton boton--primario" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar cotización'}</button>
+        </form>
+      ) : (
+        <p className="nota">Solo un administrador puede cargar cotizaciones. La cuenta demo es de cajero.</p>
+      )}
+    </div>
   )
 }

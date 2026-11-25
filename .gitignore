@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Graphify (mapa local del código para Claude Code)
+graphify-out/
+.claude/settings.local.json
